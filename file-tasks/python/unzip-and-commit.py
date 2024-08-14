@@ -2,7 +2,7 @@ import zipfile
 import os
 import subprocess
 
-target_dir = "C:\\Users\\joluedem\\git\\stackoverflow_data\\data\\"
+target_dir = os.environ['UNZIP_TARGET']
 
 def loop_zip_files(path):
     for root, dirs, files in os.walk(path):
@@ -36,7 +36,7 @@ def extract_and_commit(zip_file, repo_url):
     subprocess.run(['git', 'push', '-u', 'origin', 'master'])
 
 # Example usage
-path = "C:\\Users\\joluedem\\OneDrive - Microsoft\\data-sets\\stack-overflow\\"
-repo_url = 'https://github.com/joluede_msft/stackoverflow_data.git'
+path = os.environ['UNZIP_PATH']
+repo_url = os.environ['UNZIP_REPO']
 
 extract_and_commit(loop_zip_files(path), repo_url)
