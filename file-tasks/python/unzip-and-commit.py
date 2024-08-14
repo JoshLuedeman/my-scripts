@@ -1,42 +1,55 @@
-import zipfile
 import os
 import subprocess
+import py7zr
 
-target_dir = os.environ['UNZIP_TARGET']
+def get_env_var(env_var):
+    # Get the folder path from an environment variable
+    return os.getenv(env_var)
 
-def loop_zip_files(path):
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            if file.endswith('.zip'):
-                zip_file = os.path.join(root, file)
-                return zip_file
+def extract_7z_files(src_folder_path, tgt_folder_path):
+    # Loop through each 7z file in the folder
+    for file_name in os.listdir(src_folder_path):
+        if file_name.endswith('.7z'):
+            # Create a new folder named after the 7z file (without extension)
+            new_folder = os.path.join(tgt_folder_path, file_name[:-7])
+            os.makedirs(new_folder, exist_ok=True)
+            
+            # Extract the contents of the 7z file to the new folder
+            with py7zr.SevenZipFile(os.path.join(src_folder_path, file_name), mode='r') as archive:
+                archive.extractall(path=new_folder)
+            
+            # Commit the new folder and its contents to a GitHub repository
+            commit_to_github(new_folder,tgt_folder_path)
 
-def extract_and_commit(zip_file, repo_url):
-    # Extract the contents of the zip file
-    folder_name = os.path.splitext(zip_file)
-    with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-        zip_ref.extractall(folder_name)
+def commit_to_github(folder_path,tgt_folder_path):
+    # Change directory to the folder
+    os.chdir(tgt_folder_path)
     
-    # Change directory to the extracted folder
-    os.chdir(folder_name)
-    
-    # Initialize a new git repository
-    subprocess.run(['git', 'init'])
-    
-    # Add the remote repository
-    subprocess.run(['git', 'remote', 'add', 'origin', repo_url])
+    # Initialize a new git repository if it doesn't exist
+    #if not os.path.exists(os.path.join(folder_path, '.git')):
+    #    subprocess.run(['git', 'init'])
     
     # Add all files to the repository
-    subprocess.run(['git', 'add', folder_name])
+    subprocess.run(['git', 'add', '.'])
     
     # Commit the changes
-    subprocess.run(['git', 'commit', '-m', 'Adding ' + folder_name + ' folder'])
+    subprocess.run(['git', 'commit', '-m', 'Add extracted file folder ' + folder_path + ' from 7z archive'])
     
     # Push the changes to the remote repository
-    subprocess.run(['git', 'push', '-u', 'origin', 'master'])
+    # Note: You need to set up the remote repository URL and authentication
+    subprocess.run(['git', 'push', 'origin', 'main'])
 
-# Example usage
-path = os.environ['UNZIP_PATH']
-repo_url = os.environ['UNZIP_REPO']
+def main():
+    # Get the environment variables
+    src_folder_path = get_env_var("UNZIP_PATH")
+    tgt_folder_path = get_env_var("UNZIP_TARGET")
+    repo = get_env_var("UNZIP_REPO")
+    
+    if src_folder_path:
+        # Extract 7z files and commit to GitHub
+        extract_7z_files(src_folder_path,tgt_folder_path)
+    else:
+        print(f"Environment variable src folder path not set.")
 
-extract_and_commit(loop_zip_files(path), repo_url)
+if __name__ == "__main__":
+    main()
